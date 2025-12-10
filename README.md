@@ -1,6 +1,7 @@
 # ZTM Trójmiasto (Tristar) - Integracja Home Assistant
 
 Niestandardowa integracja (Custom Component) dla Home Assistant, dostarczająca informacje o rzeczywistych czasach odjazdów komunikacji miejskiej w Trójmieście (Gdańsk, Gdynia, Sopot). Integracja korzysta z otwartych danych systemu TRISTAR.
+Napisana przy pomocy Google Gemini.
 
 ![Logo Integracji](logo.png)
 
