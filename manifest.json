@@ -1,0 +1,11 @@
+{
+  "domain": "ztm_trojmiasto",
+  "name": "ZTM Trójmiasto (Tristar)",
+  "version": "1.0.0",
+  "codeowners": ["@jakubex12"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/jakubex12/ztm-3city",
+  "issue_tracker": "https://github.com/jakubex12/ztm-3city/issues",
+  "requirements": []
+}
