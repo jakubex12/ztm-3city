@@ -4,7 +4,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
-from homeassistant.components.http import StaticPathConfig # <--- NOWY IMPORT
+from homeassistant.components.http import StaticPathConfig
 
 DOMAIN = "ztm_trojmiasto"
 PLATFORMS = ["sensor", "text"]
@@ -14,19 +14,33 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up platform from a config entry."""
+    
+    # Upewniamy się, że słownik danych domeny istnieje
+    hass.data.setdefault(DOMAIN, {})
 
-    # 1. Rejestracja pliku JS (serwowanie pliku) - NOWA METODA
-    # Używamy async_register_static_paths zamiast register_static_path
-    await hass.http.async_register_static_paths([
-        StaticPathConfig(
-            url_path=CARD_URL,
-            path=hass.config.path("custom_components/ztm_trojmiasto/ztm-departures-card.js"),
-            cache_headers=True
-        )
-    ])
+    # ▼▼▼ ZABEZPIECZENIE: Wykonaj rejestrację TYLKO RAZ (Globalnie) ▼▼▼
+    if not hass.data[DOMAIN].get("card_registered"):
+        try:
+            # 1. Rejestracja pliku JS (serwowanie pliku)
+            await hass.http.async_register_static_paths([
+                StaticPathConfig(
+                    url_path=CARD_URL,
+                    path=hass.config.path("custom_components/ztm_trojmiasto/ztm-departures-card.js"),
+                    cache_headers=True
+                )
+            ])
 
-    # 2. Automatyczne dodanie do Zasobów Lovelace (Auto-register)
-    await _async_register_lovelace_resource(hass, CARD_URL)
+            # 2. Automatyczne dodanie do Zasobów Lovelace (Auto-register)
+            await _async_register_lovelace_resource(hass, CARD_URL)
+            
+            # Oznaczamy flagę, że już to zrobiliśmy
+            hass.data[DOMAIN]["card_registered"] = True
+            _LOGGER.debug("Zarejestrowano kartę ZTM w systemie HTTP.")
+            
+        except RuntimeError:
+            # Jeśli mimo to wystąpi błąd (np. przy przeładowaniu), ignorujemy go bezpiecznie
+            _LOGGER.debug("Ścieżka statyczna dla ZTM już istnieje.")
+    # ▲▲▲ KONIEC ZMIAN ▲▲▲
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -38,19 +52,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_register_lovelace_resource(hass: HomeAssistant, url: str):
     """Automatycznie dodaje kartę do zasobów Lovelace."""
-    # Pobieramy instancję zasobów Lovelace
     resources: ResourceStorageCollection = hass.data.get(LOVELACE_DOMAIN, {}).get("resources")
     
-    # Jeśli system zasobów nie jest jeszcze załadowany, odpuszczamy
     if not resources or not resources.loaded:
         return
 
-    # Sprawdzamy, czy ten URL już istnieje
     for resource in resources.async_items():
         if resource["url"] == url:
-            return  # Już jest, nic nie robimy
+            return
 
-    # Jeśli nie ma - dodajemy
     _LOGGER.info("Automatyczne dodawanie karty ZTM do zasobów Lovelace: %s", url)
     try:
         await resources.async_create_item({"res_type": "module", "url": url})
