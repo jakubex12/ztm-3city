@@ -3,7 +3,6 @@ import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
-from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.components.http import StaticPathConfig
 
 DOMAIN = "ztm_trojmiasto"
@@ -15,7 +14,6 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up platform from a config entry."""
     
-    # Upewniamy się, że słownik danych domeny istnieje
     hass.data.setdefault(DOMAIN, {})
 
     # ▼▼▼ ZABEZPIECZENIE: Wykonaj rejestrację TYLKO RAZ (Globalnie) ▼▼▼
@@ -30,15 +28,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             ])
 
-            # 2. Automatyczne dodanie do Zasobów Lovelace (Auto-register)
+            # 2. Automatyczne dodanie do Zasobów Lovelace
             await _async_register_lovelace_resource(hass, CARD_URL)
             
-            # Oznaczamy flagę, że już to zrobiliśmy
             hass.data[DOMAIN]["card_registered"] = True
             _LOGGER.debug("Zarejestrowano kartę ZTM w systemie HTTP.")
             
         except RuntimeError:
-            # Jeśli mimo to wystąpi błąd (np. przy przeładowaniu), ignorujemy go bezpiecznie
             _LOGGER.debug("Ścieżka statyczna dla ZTM już istnieje.")
     # ▲▲▲ KONIEC ZMIAN ▲▲▲
 
@@ -52,8 +48,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_register_lovelace_resource(hass: HomeAssistant, url: str):
     """Automatycznie dodaje kartę do zasobów Lovelace."""
-    resources: ResourceStorageCollection = hass.data.get(LOVELACE_DOMAIN, {}).get("resources")
+    # POPRAWKA OSTRZEŻENIA: Pobieramy obiekt Lovelace, a potem jego atrybut resources
+    lovelace_data = hass.data.get(LOVELACE_DOMAIN)
     
+    if not lovelace_data:
+        return
+
+    # Nowy, bezpieczny sposób dostępu do resources (zamiast .get("resources"))
+    resources = getattr(lovelace_data, "resources", None)
+
     if not resources or not resources.loaded:
         return
 
