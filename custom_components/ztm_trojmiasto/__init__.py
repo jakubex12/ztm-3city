@@ -4,6 +4,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
+from homeassistant.components.http import StaticPathConfig # <--- NOWY IMPORT
 
 DOMAIN = "ztm_trojmiasto"
 PLATFORMS = ["sensor", "text"]
@@ -14,12 +15,15 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up platform from a config entry."""
 
-    # 1. Rejestracja pliku JS (serwowanie pliku)
-    hass.http.register_static_path(
-        CARD_URL,
-        hass.config.path("custom_components/ztm_trojmiasto/ztm-departures-card.js"),
-        True
-    )
+    # 1. Rejestracja pliku JS (serwowanie pliku) - NOWA METODA
+    # Używamy async_register_static_paths zamiast register_static_path
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(
+            url_path=CARD_URL,
+            path=hass.config.path("custom_components/ztm_trojmiasto/ztm-departures-card.js"),
+            cache_headers=True
+        )
+    ])
 
     # 2. Automatyczne dodanie do Zasobów Lovelace (Auto-register)
     await _async_register_lovelace_resource(hass, CARD_URL)
@@ -37,7 +41,7 @@ async def _async_register_lovelace_resource(hass: HomeAssistant, url: str):
     # Pobieramy instancję zasobów Lovelace
     resources: ResourceStorageCollection = hass.data.get(LOVELACE_DOMAIN, {}).get("resources")
     
-    # Jeśli system zasobów nie jest jeszcze załadowany, odpuszczamy (użytkownik doda ręcznie lub po restarcie wejdzie)
+    # Jeśli system zasobów nie jest jeszcze załadowany, odpuszczamy
     if not resources or not resources.loaded:
         return
 
