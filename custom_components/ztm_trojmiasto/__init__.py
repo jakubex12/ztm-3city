@@ -48,18 +48,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_register_lovelace_resource(hass: HomeAssistant, url: str):
     """Automatycznie dodaje kartę do zasobów Lovelace."""
-    # POPRAWKA OSTRZEŻENIA: Pobieramy obiekt Lovelace, a potem jego atrybut resources
+    # Pobieramy obiekt Lovelace
     lovelace_data = hass.data.get(LOVELACE_DOMAIN)
     
     if not lovelace_data:
         return
 
-    # Nowy, bezpieczny sposób dostępu do resources (zamiast .get("resources"))
+    # Bezpieczny dostęp do resources
     resources = getattr(lovelace_data, "resources", None)
 
     if not resources or not resources.loaded:
         return
 
+    # Sprawdzamy czy zasób już istnieje
     for resource in resources.async_items():
         if resource["url"] == url:
             return
@@ -67,5 +68,10 @@ async def _async_register_lovelace_resource(hass: HomeAssistant, url: str):
     _LOGGER.info("Automatyczne dodawanie karty ZTM do zasobów Lovelace: %s", url)
     try:
         await resources.async_create_item({"res_type": "module", "url": url})
+        
+        # ▼▼▼ FIX: WYMUSZENIE ODŚWIEŻENIA PRZEGLĄDARKI ▼▼▼
+        # To zdarzenie mówi frontendowi: "Przeładuj konfigurację Lovelace teraz!"
+        hass.bus.async_fire("lovelace_updated")
+        
     except Exception as ex:
         _LOGGER.warning("Nie udało się automatycznie dodać zasobu: %s", ex)
