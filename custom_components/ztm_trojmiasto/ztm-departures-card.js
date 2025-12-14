@@ -20,6 +20,11 @@ class ZtmDeparturesCard extends HTMLElement {
         this._lastStateStr = JSON.stringify(state.attributes);
         this.departures = state.attributes.wszystkie_odjazdy || [];
 
+        // Inicjalizacja zbioru wybranych linii (Set zapewnia unikalność)
+        if (!this.selectedLines) {
+            this.selectedLines = new Set();
+        }
+
         if (!this.content) {
             this.renderBase();
         }
@@ -33,7 +38,8 @@ class ZtmDeparturesCard extends HTMLElement {
             throw new Error("Musisz podać 'entity'");
         }
         this.config = config;
-        this.activeFilter = 'all';
+        // Resetujemy wybór przy zmianie konfiguracji
+        this.selectedLines = new Set(); 
     }
 
     renderBase() {
@@ -62,18 +68,20 @@ class ZtmDeparturesCard extends HTMLElement {
                     cursor: pointer;
                     font-size: 12px;
                     font-weight: 500;
-                    transition: background 0.2s, color 0.2s;
+                    transition: all 0.2s;
                     color: var(--primary-text-color);
-                    user-select: none; /* Zapobiega zaznaczaniu tekstu przy klikaniu */
+                    user-select: none;
                 }
                 .filter-btn:hover {
                     background: var(--secondary-text-color);
                     color: white;
                 }
+                /* Styl dla aktywnego przycisku */
                 .filter-btn.active {
                     background: var(--primary-color);
                     color: var(--text-primary-color, white);
                     border-color: var(--primary-color);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                 }
                 .departures-container { padding: 0; }
                 .row {
@@ -104,33 +112,47 @@ class ZtmDeparturesCard extends HTMLElement {
         this.content = this.querySelector('#departures-container');
         this.filters = this.querySelector('#filter-container');
 
-        // EVENT DELEGATION: Podpinamy nasłuchiwanie pod kontener RAZ.
-        // To działa nawet jak podmieniamy przyciski w środku HTML.
+        // Obsługa kliknięć (Event Delegation)
         this.filters.addEventListener('click', (e) => {
             const btn = e.target.closest('.filter-btn');
             if (!btn) return;
 
             const filter = btn.getAttribute('data-filter');
-            console.log("Kliknięto filtr:", filter); // Sprawdź w konsoli F12!
-            this.setFilter(filter);
+            this.toggleFilter(filter);
         });
     }
 
     updateFilters() {
+        // Pobieramy dostępne linie z danych
         const lines = [...new Set(this.departures.map(d => d.linia))].sort();
         
-        let html = `<button class="filter-btn ${this.activeFilter === 'all' ? 'active' : ''}" data-filter="all">Wszystkie</button>`;
+        // Logika: Jeśli zbiór jest pusty -> przycisk "Wszystkie" jest aktywny
+        const isAllActive = this.selectedLines.size === 0;
+
+        let html = `<button class="filter-btn ${isAllActive ? 'active' : ''}" data-filter="all">Wszystkie</button>`;
         
         lines.forEach(line => {
-            const isActive = this.activeFilter === line ? 'active' : '';
+            // Sprawdzamy czy dana linia jest w zbiorze wybranych
+            const isActive = this.selectedLines.has(line) ? 'active' : '';
             html += `<button class="filter-btn ${isActive}" data-filter="${line}">${line}</button>`;
         });
 
         this.filters.innerHTML = html;
     }
 
-    setFilter(line) {
-        this.activeFilter = line;
+    toggleFilter(line) {
+        if (line === 'all') {
+            // Kliknięcie "Wszystkie" czyści wybór
+            this.selectedLines.clear();
+        } else {
+            // Logika przełączania (Toggle)
+            if (this.selectedLines.has(line)) {
+                this.selectedLines.delete(line); // Odznacz
+            } else {
+                this.selectedLines.add(line);    // Zaznacz
+            }
+        }
+
         this.updateFilters(); // Odśwież wygląd przycisków
         this.updateTable();   // Odśwież tabelę
     }
@@ -138,15 +160,18 @@ class ZtmDeparturesCard extends HTMLElement {
     updateTable() {
         if (!this.content) return;
 
-        const filtered = this.activeFilter === 'all' 
+        // Jeśli zbiór pusty = pokaż wszystkie. Jeśli nie = filtruj.
+        const filtered = this.selectedLines.size === 0 
             ? this.departures 
-            : this.departures.filter(d => d.linia === this.activeFilter);
+            : this.departures.filter(d => this.selectedLines.has(d.linia));
 
         const limit = this.config.limit || 10;
         const limited = filtered.slice(0, limit);
 
         if (limited.length === 0) {
-            this.content.innerHTML = `<div class="no-data">Brak odjazdów (Linia: ${this.activeFilter})</div>`;
+            // Wyświetlamy informację, jakie linie są wybrane, ale nie mają kursów
+            const selectedText = Array.from(this.selectedLines).join(", ");
+            this.content.innerHTML = `<div class="no-data">Brak odjazdów dla: ${selectedText}</div>`;
             return;
         }
 
