@@ -1,102 +1,85 @@
 # ZTM Trójmiasto (Tristar) - Integracja Home Assistant
 
-Niestandardowa integracja (Custom Component) dla Home Assistant, dostarczająca informacje o rzeczywistych czasach odjazdów komunikacji miejskiej w Trójmieście (Gdańsk, Gdynia, Sopot). Integracja korzysta z otwartych danych systemu TRISTAR.
-Napisana przy pomocy Google Gemini.
+Niestandardowa integracja dla Home Assistant, dostarczająca **rzeczywiste czasy odjazdów** (LIVE) komunikacji miejskiej w Trójmieście (Gdańsk, Gdynia, Sopot). Integracja korzysta z otwartych danych systemu TRISTAR.
 
-![Logo Integracji](logo.png)
+Projekt zawiera **dedykowaną kartę Lovelace**, która instaluje się automatycznie wraz z integracją.
+
 
 ## ✨ Możliwości
 
-* **Wyszukiwanie po nazwie:** Nie musisz znać ID słupka. Wpisz "Dworzec" lub "Wołkowyska", a integracja wyświetli listę pasujących przystanków.
-* **Dane na żywo:** Uwzględnia opóźnienia rzeczywiste (Real-time).
-* **Inteligentne formatowanie:** Czas wyświetlany jako "Teraz", "za X min" lub godzina odjazdu (np. 14:35).
-* **Mapowanie linii nocnych:** Automatycznie zamienia numery techniczne (np. 406) na oznaczenia nocne (N6).
-* **Dwa sensory dla każdego przystanku:**
-    * `..._wszystkie`: Pełna lista odjazdów w atrybutach.
-    * `..._najblizsze_5`: Lista skrócona do 5 najbliższych połączeń.
+* **⚡ Dane na żywo:** Uwzględnia opóźnienia (Real-time). Jeśli autobus stoi w korku, czas zostanie zaktualizowany.
+* **🔍 Wyszukiwanie przystanków:** Nie musisz znać ID słupka. Wpisz "Wołkowyska" lub "Dworzec", a integracja wyświetli listę do wyboru.
+* **🎨 Dedykowana Karta:** Piękna, stylowa karta, która nie wymaga konfiguracji YAML ani zewnętrznych dodatków.
+* **🔘 Interaktywne Filtrowanie:** Kliknij numer linii na karcie, aby pokazać tylko jej odjazdy. Wszystko działa natychmiastowo w przeglądarce.
+* **🤖 Automatyzacje:** Dla każdego przystanku tworzona jest też encja `text`, która pamięta wybrany filtr, co pozwala na użycie jej w automatyzacjach.
 
 ## 📥 Instalacja
 
-### Metoda 1: HACS (Zalecane)
-1.  Dodaj to repozytorium jako **Niestandardowe repozytorium** (Custom Repository) w HACS.
-2.  Wyszukaj "ZTM Trójmiasto" i zainstaluj.
-3.  Zrestartuj Home Assistant.
+### HACS (Zalecane)
 
-### Metoda 2: Ręczna
+1.  Otwórz HACS -> Integracje.
+2.  Dodaj to repozytorium jako **Niestandardowe repozytorium** (Custom Repository):
+    * URL: `https://github.com/jakubex12/ztm-3city`
+    * Typ: **Integracja**
+3.  Kliknij **Pobierz**.
+4.  **Zrestartuj Home Assistant**.
+
+### Instalacja Ręczna
+
 1.  Pobierz folder `custom_components/ztm_trojmiasto` z tego repozytorium.
-2.  Skopiuj go do folderu `/config/custom_components/` w swojej instalacji Home Assistant.
+2.  Wgraj go do folderu `/config/custom_components/` w Twoim Home Assistant.
 3.  Zrestartuj Home Assistant.
 
 ## ⚙️ Konfiguracja
 
-Integracja jest w pełni konfigurowalna przez interfejs użytkownika (UI).
-
 1.  Przejdź do **Ustawienia** -> **Urządzenia i usługi**.
-2.  Kliknij przycisk **Dodaj integrację**.
+2.  Kliknij **Dodaj integrację**.
 3.  Wyszukaj **ZTM Trójmiasto**.
-4.  Wpisz nazwę przystanku (np. `Wołkowyska`), a następnie wybierz właściwy słupek z listy.
+4.  Wpisz nazwę przystanku (np. `Dworzec Główny`).
+5.  Wybierz właściwy słupek z listy rozwijanej.
 
-## 📊 Sensory
+## 🚌 Karta Dashboard (Lovelace)
 
-Dla każdego dodanego przystanku tworzone są dwie encje (gdzie `XXXX` to ID słupka):
+Integracja automatycznie rejestruje zasób wymagany do działania karty. Nie musisz niczego pobierać ręcznie.
 
-* `sensor.autobusy_[nazwa]_wszystkie` (Pełna lista w atrybutach)
-* `sensor.autobusy_[nazwa]_najblizsze_5` (Lista skrócona)
+### Jak dodać kartę?
 
-## 🎨 Wygląd Dashboardu (Flex Table Card)
-
-Do wyświetlania tabeli odjazdów zalecana jest karta **Flex Table Card**. Pozwala ona na sortowanie, filtrowanie i zaawansowane stylowanie HTML.
-
-**Wymagania:**
-* Zainstaluj dodatek **Flex Table Card** przez HACS (Frontend).
-
-### Kod karty:
-
-Utwórz nową kartę "Manual" (Ręczna konfiguracja) na swoim dashboardzie i wklej poniższy kod. Pamiętaj, aby **podmienić ID sensora** (`entities.include`).
+1.  Wejdź na swój Dashboard i kliknij **Edytuj**.
+2.  Dodaj nową kartę i wybierz **"Ręczna" (Manual)** (na samym dole).
+3.  Wklej poniższą konfigurację:
 
 ```yaml
-type: custom:flex-table-card
-title: Odjazdy Wołkowyska
-entities:
-  # ▼▼▼ WKLEJ TUTAJ ID SWOJEGO SENSORA ▼▼▼
-  include: sensor.autobusy_wolkowyska_01_wszystkie
-columns:
-  - name: Linia
-    data: wszystkie_odjazdy
-    modify: x.linia
-    align: center
-    prefix: '<span class="line-badge">'
-    suffix: '</span>'
-  - name: Kierunek
-    data: wszystkie_odjazdy
-    modify: x.kierunek
-    align: left
-  - name: Czas
-    data: wszystkie_odjazdy
-    align: right
-    # Logika kolorowania czasu (Czerwony dla "Teraz", Zielony dla przyszłości)
-    modify: >-
-      (x.czas === 'Teraz' ? '<span class="time-now">' : '<span class="time-future">') + x.czas + '</span>'
-css:
-  table+: 'padding: 10px; width: 100%; border-collapse: collapse;'
-  thead th: 'color: var(--secondary-text-color); font-weight: normal; padding-bottom: 10px; border-bottom: 1px solid var(--divider-color);'
-  tbody tr: 'height: 40px; border-bottom: 1px solid var(--divider-color);'
-  tbody tr:last-child: 'border-bottom: none;'
-style: |
-  .line-badge {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-weight: bold;
-    display: inline-block;
-    min-width: 30px;
-  }
-  .time-now {
-    color: var(--error-color);
-    font-weight: bold;
-  }
-  .time-future {
-    color: var(--success-color);
-    font-weight: bold;
-  }
+type: custom:ztm-departures-card
+title: 🚌 Przystanek Wołkowyska
+entity: sensor.autobusy_wolkowyska_1848_wszystkie
+limit: 6
+```
+### 🎛️ Dostępne opcje
+| Opcja | Wymagane | Typ | Opis | Przykład |
+| :--- | :---: | :---: | :--- | :--- |
+| **`type`** | ✅ TAK | `string` | Musi być dokładnie: `custom:ztm-departures-card`. | `custom:ztm-departures-card` |
+| **`entity`** | ✅ TAK | `string` | ID sensora zawierającego listę odjazdów (z końcówką `_wszystkie`). | `sensor.autobusy_wolkowyska_01_wszystkie` |
+| **`title`** | ❌ NIE | `string` | Własny nagłówek karty. Jeśli nie podasz, wyświetli się "Odjazdy". | `🚌 Do Pracy` |
+| **`limit`** | ❌ NIE | `number` | Maksymalna liczba wyświetlanych wierszy. Domyślnie `10`. | `5` |
+
+## 🛠️ Rozwiązywanie problemów
+🔴 "Custom element doesn't exist: ztm-departures-card"
+Jeśli po dodaniu karty widzisz czerwony błąd, oznacza to, że przeglądarka wczytała Dashboard zanim integracja zdążyła zarejestrować kartę.
+
+Rozwiązanie:
+
+Upewnij się, że zrestartowałeś Home Assistant po instalacji.
+
+Wyczyść pamięć podręczną przeglądarki dla Dashboardu:
+
+Windows/Linux: Wciśnij CTRL + F5.
+
+Mac: Wciśnij CMD + SHIFT + R.
+
+Aplikacja mobilna: Wejdź w Ustawienia aplikacji -> Debugowanie -> Wyczyść cache frontend.
+
+🔴 Brak przystanków przy wyszukiwaniu
+Upewnij się, że wpisujesz polską nazwę poprawnie (choć wielkość liter nie ma znaczenia). Jeśli lista się nie ładuje, API Tristar może być tymczasowo niedostępne. Spróbuj ponownie za chwilę.
+
+### 📄 Licencja
+MIT License. Dane pochodzą z otwartego API systemu TRISTAR (Gdańsk/Gdynia/Sopot).
