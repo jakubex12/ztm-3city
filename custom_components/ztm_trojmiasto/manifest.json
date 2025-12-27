@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "documentation": "https://github.com/jakubex12/ztm-3city",
   "issue_tracker": "https://github.com/jakubex12/ztm-3city/issues",
-  "dependencies": [],
+  "dependencies": [
+    "http",
+    "lovelace"
+  ],
   "codeowners": ["@jakubex12"],
   "requirements": [],
   "iot_class": "cloud_polling",
