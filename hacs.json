@@ -2,5 +2,5 @@
   "name": "ZTM 3City",
   "render_readme": true,
   "content_in_root": false,
-  "zip_release": true
+  "zip_release": false
 }
