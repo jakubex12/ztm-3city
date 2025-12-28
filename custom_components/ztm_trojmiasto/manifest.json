@@ -1,7 +1,7 @@
 {
   "domain": "ztm_trojmiasto",
   "name": "ZTM Trójmiasto",
-  "version": "1.0.0",
+  "version": "2026.1.rc1",
   "documentation": "https://github.com/jakubex12/ztm-3city",
   "issue_tracker": "https://github.com/jakubex12/ztm-3city/issues",
   "dependencies": [],
@@ -10,3 +10,4 @@
   "iot_class": "cloud_polling",
   "config_flow": true
 }
+
