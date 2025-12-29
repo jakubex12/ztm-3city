@@ -267,4 +267,5 @@ Jeśli podoba Ci się ta integracja:
 
 **Wersja**: 2026.1.rc5  
 **Status**: Rozwojowa
+
 **Testowane z Home Assistant**: >= 2024.1.0
