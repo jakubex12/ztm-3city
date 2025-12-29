@@ -1,4 +1,18 @@
 class ZtmDeparturesCard extends HTMLElement {
+    // 1. Definicja edytora wizualnego
+    static getConfigElement() {
+        return document.createElement("ztm-departures-card-editor");
+    }
+
+    // 2. Domyślna konfiguracja po dodaniu karty
+    static getStubConfig() {
+        return {
+            entity: "",
+            title: "Odjazdy",
+            limit: 5
+        };
+    }
+
     set hass(hass) {
         this._hass = hass;
         const entityId = this.config.entity;
@@ -8,7 +22,8 @@ class ZtmDeparturesCard extends HTMLElement {
             this.innerHTML = `
                 <ha-card class="error">
                     <div style="padding: 20px; color: red;">
-                        Encja <b>${entityId}</b> niedostępna.
+                        Encja <b>${entityId || '?'}</b> niedostępna.
+                        <br><small>Edytuj kartę i wybierz sensor.</small>
                     </div>
                 </ha-card>`;
             return;
@@ -20,7 +35,6 @@ class ZtmDeparturesCard extends HTMLElement {
         this._lastStateStr = JSON.stringify(state.attributes);
         this.departures = state.attributes.wszystkie_odjazdy || [];
 
-        // Inicjalizacja zbioru wybranych linii (Set zapewnia unikalność)
         if (!this.selectedLines) {
             this.selectedLines = new Set();
         }
@@ -35,10 +49,10 @@ class ZtmDeparturesCard extends HTMLElement {
 
     setConfig(config) {
         if (!config.entity) {
-            throw new Error("Musisz podać 'entity'");
+            // Nie rzucamy błędu krytycznego, żeby edytor mógł działać
+            console.warn("ZTM Card: Brak encji");
         }
         this.config = config;
-        // Resetujemy wybór przy zmianie konfiguracji
         this.selectedLines = new Set(); 
     }
 
@@ -76,7 +90,6 @@ class ZtmDeparturesCard extends HTMLElement {
                     background: var(--secondary-text-color);
                     color: white;
                 }
-                /* Styl dla aktywnego przycisku */
                 .filter-btn.active {
                     background: var(--primary-color);
                     color: var(--text-primary-color, white);
@@ -112,27 +125,21 @@ class ZtmDeparturesCard extends HTMLElement {
         this.content = this.querySelector('#departures-container');
         this.filters = this.querySelector('#filter-container');
 
-        // Obsługa kliknięć (Event Delegation)
         this.filters.addEventListener('click', (e) => {
             const btn = e.target.closest('.filter-btn');
             if (!btn) return;
-
             const filter = btn.getAttribute('data-filter');
             this.toggleFilter(filter);
         });
     }
 
     updateFilters() {
-        // Pobieramy dostępne linie z danych
         const lines = [...new Set(this.departures.map(d => d.linia))].sort();
-        
-        // Logika: Jeśli zbiór jest pusty -> przycisk "Wszystkie" jest aktywny
         const isAllActive = this.selectedLines.size === 0;
 
         let html = `<button class="filter-btn ${isAllActive ? 'active' : ''}" data-filter="all">Wszystkie</button>`;
         
         lines.forEach(line => {
-            // Sprawdzamy czy dana linia jest w zbiorze wybranych
             const isActive = this.selectedLines.has(line) ? 'active' : '';
             html += `<button class="filter-btn ${isActive}" data-filter="${line}">${line}</button>`;
         });
@@ -142,25 +149,21 @@ class ZtmDeparturesCard extends HTMLElement {
 
     toggleFilter(line) {
         if (line === 'all') {
-            // Kliknięcie "Wszystkie" czyści wybór
             this.selectedLines.clear();
         } else {
-            // Logika przełączania (Toggle)
             if (this.selectedLines.has(line)) {
-                this.selectedLines.delete(line); // Odznacz
+                this.selectedLines.delete(line);
             } else {
-                this.selectedLines.add(line);    // Zaznacz
+                this.selectedLines.add(line);
             }
         }
-
-        this.updateFilters(); // Odśwież wygląd przycisków
-        this.updateTable();   // Odśwież tabelę
+        this.updateFilters();
+        this.updateTable();
     }
 
     updateTable() {
         if (!this.content) return;
 
-        // Jeśli zbiór pusty = pokaż wszystkie. Jeśli nie = filtruj.
         const filtered = this.selectedLines.size === 0 
             ? this.departures 
             : this.departures.filter(d => this.selectedLines.has(d.linia));
@@ -169,7 +172,6 @@ class ZtmDeparturesCard extends HTMLElement {
         const limited = filtered.slice(0, limit);
 
         if (limited.length === 0) {
-            // Wyświetlamy informację, jakie linie są wybrane, ale nie mają kursów
             const selectedText = Array.from(this.selectedLines).join(", ");
             this.content.innerHTML = `<div class="no-data">Brak odjazdów dla: ${selectedText}</div>`;
             return;
@@ -192,4 +194,121 @@ class ZtmDeparturesCard extends HTMLElement {
     }
 }
 
+// ==========================================================
+// NOWA KLASA: EDYTOR WIZUALNY (UI)
+// ==========================================================
+class ZtmDeparturesCardEditor extends HTMLElement {
+    setConfig(config) {
+        this._config = config;
+        this.render();
+    }
+
+    set hass(hass) {
+        this._hass = hass;
+        // Przekazujemy hass do pickera encji, żeby widział listę sensorów
+        const entityPicker = this.querySelector("ha-entity-picker");
+        if (entityPicker) {
+            entityPicker.hass = hass;
+        }
+    }
+
+    render() {
+        if (!this.innerHTML) {
+            this.innerHTML = `
+                <div class="card-config">
+                    <div class="option">
+                        <ha-entity-picker
+                            label="Wybierz sensor (ZTM)"
+                            domain-filter="sensor"
+                            class="entity-picker"
+                        ></ha-entity-picker>
+                    </div>
+                    <div class="option">
+                        <label class="label">Tytuł karty</label>
+                        <input type="text" class="input-text" id="title-input" placeholder="np. Przystanek Wołkowyska">
+                    </div>
+                    <div class="option">
+                        <label class="label">Ilość wierszy (Limit)</label>
+                        <input type="number" class="input-number" id="limit-input" min="1" max="50">
+                    </div>
+                </div>
+                <style>
+                    .card-config { padding: 10px; display: flex; flex-direction: column; gap: 15px; }
+                    .option { display: flex; flex-direction: column; gap: 5px; }
+                    .label { font-size: 14px; font-weight: 500; color: var(--secondary-text-color); }
+                    .input-text, .input-number {
+                        padding: 8px;
+                        border: 1px solid var(--divider-color);
+                        border-radius: 4px;
+                        background: var(--card-background-color);
+                        color: var(--primary-text-color);
+                        font-size: 14px;
+                    }
+                    ha-entity-picker { display: block; }
+                </style>
+            `;
+
+            // Podpinamy zdarzenia (Events)
+            this.querySelector("ha-entity-picker").addEventListener("value-changed", this._valueChanged.bind(this, "entity"));
+            this.querySelector("#title-input").addEventListener("change", this._valueChanged.bind(this, "title"));
+            this.querySelector("#limit-input").addEventListener("change", this._valueChanged.bind(this, "limit"));
+        }
+
+        // Ustawiamy aktualne wartości w polach
+        const entityPicker = this.querySelector("ha-entity-picker");
+        if (entityPicker) {
+            entityPicker.hass = this._hass; // Upewniamy się, że picker ma hass
+            entityPicker.value = this._config.entity || "";
+        }
+        
+        this.querySelector("#title-input").value = this._config.title || "";
+        this.querySelector("#limit-input").value = this._config.limit || 10;
+    }
+
+    _valueChanged(key, ev) {
+        if (!this._config || !this._hass) return;
+
+        const target = ev.target;
+        // Dla ha-entity-picker wartość jest w .value, dla inputów też
+        // Ale event ha-entity-picker to 'value-changed', a jego szczegóły są w ev.detail.value
+        let newValue = target.value;
+        
+        if (key === "entity" && ev.detail && ev.detail.value !== undefined) {
+            newValue = ev.detail.value;
+        }
+        
+        if (key === "limit") {
+            newValue = parseInt(newValue);
+        }
+
+        // Jeśli wartość jest ta sama, nie rób nic
+        if (this._config[key] === newValue) return;
+
+        // Tworzymy nową konfigurację
+        const newConfig = {
+            ...this._config,
+            [key]: newValue,
+        };
+
+        // Wysyłamy zdarzenie do Home Assistant: "Konfiguracja się zmieniła!"
+        const event = new CustomEvent("config-changed", {
+            detail: { config: newConfig },
+            bubbles: true,
+            composed: true,
+        });
+        this.dispatchEvent(event);
+    }
+}
+
+// Rejestracja obu klas
+customElements.define('ztm-departures-card-editor', ZtmDeparturesCardEditor);
 customElements.define('ztm-departures-card', ZtmDeparturesCard);
+
+// To sprawia, że karta pojawia się na liście "Dodaj kartę" w UI
+window.customCards = window.customCards || [];
+window.customCards.push({
+    type: "ztm-departures-card",
+    name: "ZTM Trójmiasto",
+    description: "Karta odjazdów na żywo (Gdańsk/Gdynia/Sopot)",
+    preview: true // Opcjonalnie włącza podgląd
+});
