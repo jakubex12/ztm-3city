@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Wyszukaj przystanek ZTM",
+        "description": "Wpisz nazwę przystanku, aby znaleźć go w bazie danych ZTM Trójmiasto.",
+        "data": {
+          "search_name": "Nazwa przystanku"
+        },
+        "data_description": {
+          "search_name": "Wpisz fragment nazwy (np. 'Wrzeszcz', 'Dworzec')"
+        }
+      },
+      "pick_stop": {
+        "title": "Wybierz przystanek",
+        "description": "Znaleziono pasujące przystanki. Wybierz właściwy z listy.",
+        "data": {
+          "selected_stop": "Przystanek"
+        }
+      },
+      "manual": {
+        "title": "Ręczne wprowadzenie",
+        "description": "Nie udało się pobrać listy przystanków. Podaj ID przystanku ręcznie (znajdziesz je na słupku).",
+        "data": {
+          "stop_id": "ID przystanku"
+        }
+      }
+    },
+    "error": {
+      "no_stops_found": "Nie znaleziono przystanków o tej nazwie. Spróbuj innej frazy.",
+      "api_error_manual_input": "Wystąpił błąd połączenia z API. Wprowadź ID przystanku ręcznie."
+    },
+    "abort": {
+      "already_configured": "Ten przystanek jest już skonfigurowany."
+    }
+  }
+}
