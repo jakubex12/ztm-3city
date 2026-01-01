@@ -1,3 +1,4 @@
+TEST2
 # ZTM Trójmiasto - Integracja dla Home Assistant
 
 Integracja do wyświetlania odjazdów autobusów i tramwajów w czasie rzeczywistym dla ZTM Gdańsk, Gdynia i Sopot.
@@ -7,7 +8,7 @@ Integracja do wyświetlania odjazdów autobusów i tramwajów w czasie rzeczywis
 ### ✨ Kluczowe możliwości
 - **Odjazdy w czasie rzeczywistym** - aktualizacja co 60 sekund
 - **Automatyczne mapowanie linii nocnych** (401→N1, 403→N3 itd.)
-- **Inteligentne wyświetlanie czasu**:
+- **Inteligentne wyświetlanie czasu**
   - "Teraz" - dla odjazdów za 0-1 min (czerwony, migający)
   - "za X min" - dla odjazdów < 60 min (czerwony jeśli < 6 min)
   - Godzina "HH:MM" - dla dalszych odjazdów (zielony)
