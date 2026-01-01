@@ -1,4 +1,3 @@
-TEST2
 # ZTM Trójmiasto - Integracja dla Home Assistant
 
 Integracja do wyświetlania odjazdów autobusów i tramwajów w czasie rzeczywistym dla ZTM Gdańsk, Gdynia i Sopot.
@@ -9,14 +8,15 @@ Integracja do wyświetlania odjazdów autobusów i tramwajów w czasie rzeczywis
 - **Odjazdy w czasie rzeczywistym** - aktualizacja co 60 sekund
 - **Automatyczne mapowanie linii nocnych** (401→N1, 403→N3 itd.)
 - **Inteligentne wyświetlanie czasu**
-  - "Teraz" - dla odjazdów za 0-1 min (czerwony, migający)
-  - "za X min" - dla odjazdów < 60 min (czerwony jeśli < 6 min)
+  - "Teraz" - dla odjazdów za 0-1 min (czerwony, opcjonalnie migający)
+  - "za X min" - dla odjazdów < 60 min (czerwony gdy bliski odjazd)
   - Godzina "HH:MM" - dla dalszych odjazdów (zielony)
 - **Interaktywne filtry linii** - kliknij przycisk aby filtrować po konkretnej linii
 - **Ikony pojazdów** - automatyczne rozpoznawanie tramwajów (🚋) i autobusów (🚌)
 - **Edytor wizualny** - łatwa konfiguracja karty bezpośrednio z UI
 - **Wyszukiwarka przystanków** - znajdź przystanek po nazwie podczas dodawania
 - **Przywracanie filtrów** - zapamiętuje wybrane linie po restarcie
+- **Konfigurowalny próg czerwonej czcionki** - ustaw kiedy czas ma się wyświetlać na czerwono
 
 ### 🎨 Niestandardowa karta Lovelace
 
@@ -26,6 +26,8 @@ Integracja zawiera dedykowaną kartę `ztm-departures-card` z funkcjami:
 - Kolorowe oznaczenia czasów odjazdu
 - Limit wyświetlanych wierszy (domyślnie 10)
 - Automatyczna rejestracja w zasobach Lovelace
+- Opcja migania dla "Teraz" (włącz/wyłącz)
+- Konfigurowalne wyświetlanie czerwonej czcionki (próg w minutach, 0 = wyłączone)
 
 ---
 
@@ -114,6 +116,8 @@ Karta **automatycznie rejestruje się** w zasobach Lovelace przy pierwszym uruch
    - **Wybierz sensor** - lista dostępnych sensorów ZTM
    - **Tytuł karty** - np. "Przystanek Wołkowyska"
    - **Limit wierszy** - ile odjazdów wyświetlać (1-50)
+   - **Miganie "Teraz"** - czy status "Teraz" ma migać (domyślnie: tak)
+   - **Próg czerwonej czcionki** - po ilu minutach zmienić kolor na czerwony (0 = wyłączone, domyślnie: 6)
 
 #### Metoda 2: Ręczna konfiguracja YAML
 ```yaml
@@ -121,6 +125,8 @@ type: custom:ztm-departures-card
 entity: sensor.autobusy_wrzeszcz_pkp_1001
 title: Przystanek Wrzeszcz PKP
 limit: 10
+blink_now: true
+red_threshold: 6
 ```
 
 ### Parametry karty
@@ -130,6 +136,8 @@ limit: 10
 | `entity` | string | **wymagane** | ID sensora ZTM (np. `sensor.autobusy_wrzeszcz_pkp_1001`) |
 | `title` | string | "Odjazdy" | Tytuł wyświetlany w nagłówku karty |
 | `limit` | number | 10 | Maksymalna liczba wyświetlanych odjazdów (1-50) |
+| `blink_now` | boolean | true | Czy status "Teraz" ma migać |
+| `red_threshold` | number | 6 | Po ilu minutach czcionka zmienia się na czerwoną (0 = wyłączone) |
 
 ---
 
@@ -143,11 +151,14 @@ cards:
     entity: sensor.autobusy_wrzeszcz_pkp_1001
     title: Wrzeszcz PKP
     limit: 8
+    blink_now: false
+    red_threshold: 5
 
   - type: custom:ztm-departures-card
     entity: sensor.autobusy_dworzec_glowny_1848
     title: Dworzec Główny
     limit: 6
+    red_threshold: 0
 ```
 
 ### Automatyzacja: Powiadomienie o nadchodzącym autobusie

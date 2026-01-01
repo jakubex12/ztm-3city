@@ -5,11 +5,29 @@ class ZtmDeparturesCard extends HTMLElement {
     }
 
     // 2. Domyślna konfiguracja po dodaniu karty
-    static getStubConfig() {
+    static getStubConfig(hass) {
+        // Znajdź pierwszy sensor ZTM (alfabetycznie)
+        const ztmSensors = Object.keys(hass.states)
+            .filter(entityId => entityId.startsWith('sensor.autobusy_'))
+            .sort();
+        
+        const defaultEntity = ztmSensors.length > 0 ? ztmSensors[0] : "";
+        
+        // Wyciągnij nazwę przystanku z friendly_name lub entity_id
+        let defaultTitle = "Odjazdy";
+        if (defaultEntity && hass.states[defaultEntity]) {
+            const friendlyName = hass.states[defaultEntity].attributes.friendly_name || "";
+            // Usuń prefix "Autobusy " z nazwy
+            const stopName = friendlyName.replace(/^Autobusy\s+/i, "");
+            defaultTitle = stopName ? `Odjazdy ${stopName}` : "Odjazdy";
+        }
+        
         return {
-            entity: "",
-            title: "Odjazdy",
-            limit: 5
+            entity: defaultEntity,
+            title: defaultTitle,
+            limit: 10,
+            blink_now: true,
+            red_threshold: 6
         };
     }
 
@@ -49,7 +67,6 @@ class ZtmDeparturesCard extends HTMLElement {
 
     setConfig(config) {
         if (!config.entity) {
-            // Nie rzucamy błędu krytycznego, żeby edytor mógł działać
             console.warn("ZTM Card: Brak encji");
         }
         this.config = config;
@@ -58,7 +75,6 @@ class ZtmDeparturesCard extends HTMLElement {
 
     // Funkcja określająca typ pojazdu na podstawie numeru linii
     getVehicleType(lineNumber) {
-        // Tramwaje w Trójmieście to linie od 1 do 13 + linie nocne N1-N15
         const tramLines = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
         const nightTrams = ['N1', 'N3', 'N4', 'N5', 'N6', 'N8', 'N9', 'N11', 'N12', 'N13', 'N14', 'N15'];
         
@@ -82,6 +98,9 @@ class ZtmDeparturesCard extends HTMLElement {
     }
 
     renderBase() {
+        const blinkNow = this.config.blink_now !== false; // Domyślnie true
+        const blinkAnimation = blinkNow ? 'blink 1s ease-in-out infinite' : 'none';
+
         this.innerHTML = `
             <ha-card>
                 <div class="card-header">
@@ -154,7 +173,7 @@ class ZtmDeparturesCard extends HTMLElement {
                 .time { font-weight: bold; font-size: 15px; text-align: right; min-width: 70px; }
                 .time-now { 
                     color: var(--error-color, #db4437);
-                    animation: blink 1s ease-in-out infinite;
+                    animation: ${blinkAnimation};
                 }
                 .time-soon { color: var(--error-color, #db4437); }
                 .time-future { color: var(--success-color, #43a047); }
@@ -217,19 +236,20 @@ class ZtmDeparturesCard extends HTMLElement {
 
         if (limited.length === 0) {
             const selectedText = Array.from(this.selectedLines).join(", ");
-            this.content.innerHTML = `<div class="no-data">Brak odjazdów dla: ${selectedText}</div>`;
+            this.content.innerHTML = `<div class="no-data">Brak odjazdów${selectedText ? ' dla: ' + selectedText : ''}</div>`;
             return;
         }
+
+        const redThreshold = this.config.red_threshold !== undefined ? this.config.red_threshold : 6;
 
         this.content.innerHTML = limited.map(kurs => {
             const vehicleType = this.getVehicleType(kurs.linia);
             const vehicleIcon = this.getVehicleIcon(vehicleType);
             
-            // Określanie klasy czasu - "Teraz" lub poniżej 6 minut = czerwony
             let timeClass = 'time-future';
             if (kurs.czas === 'Teraz') {
                 timeClass = 'time-now';
-            } else if (kurs.minuty !== undefined && kurs.minuty < 6) {
+            } else if (redThreshold > 0 && kurs.minuty !== undefined && kurs.minuty < redThreshold) {
                 timeClass = 'time-soon';
             }
             
@@ -252,7 +272,7 @@ class ZtmDeparturesCard extends HTMLElement {
 }
 
 // ==========================================================
-// NOWA KLASA: EDYTOR WIZUALNY (UI)
+// EDYTOR WIZUALNY (UI)
 // ==========================================================
 class ZtmDeparturesCardEditor extends HTMLElement {
     setConfig(config) {
@@ -262,10 +282,14 @@ class ZtmDeparturesCardEditor extends HTMLElement {
 
     set hass(hass) {
         this._hass = hass;
-        // Przekazujemy hass do pickera encji, żeby widział listę sensorów
         const entityPicker = this.querySelector("ha-entity-picker");
         if (entityPicker) {
             entityPicker.hass = hass;
+        }
+        
+        // Automatycznie ustaw tytuł przy zmianie sensora (jeśli pole tytułu jest puste)
+        if (this._config && this._config.entity && !this._titleManuallySet) {
+            this._updateTitleFromEntity(this._config.entity);
         }
     }
 
@@ -282,11 +306,21 @@ class ZtmDeparturesCardEditor extends HTMLElement {
                     </div>
                     <div class="option">
                         <label class="label">Tytuł karty</label>
-                        <input type="text" class="input-text" id="title-input" placeholder="np. Przystanek Wołkowyska">
+                        <input type="text" class="input-text" id="title-input" placeholder="np. Odjazdy Wołkowyska 01">
                     </div>
                     <div class="option">
                         <label class="label">Ilość wierszy (Limit)</label>
                         <input type="number" class="input-number" id="limit-input" min="1" max="50">
+                    </div>
+                    <div class="option">
+                        <label class="label">
+                            <input type="checkbox" id="blink-input" style="margin-right: 8px;">
+                            Miganie dla "Teraz"
+                        </label>
+                    </div>
+                    <div class="option">
+                        <label class="label">Próg czerwonej czcionki (min, 0=wyłączone)</label>
+                        <input type="number" class="input-number" id="red-threshold-input" min="0" max="60">
                     </div>
                 </div>
                 <style>
@@ -305,49 +339,88 @@ class ZtmDeparturesCardEditor extends HTMLElement {
                 </style>
             `;
 
-            // Podpinamy zdarzenia (Events)
-            this.querySelector("ha-entity-picker").addEventListener("value-changed", this._valueChanged.bind(this, "entity"));
+            this.querySelector("ha-entity-picker").addEventListener("value-changed", this._entityChanged.bind(this));
             this.querySelector("#title-input").addEventListener("change", this._valueChanged.bind(this, "title"));
+            this.querySelector("#title-input").addEventListener("input", () => { this._titleManuallySet = true; });
             this.querySelector("#limit-input").addEventListener("change", this._valueChanged.bind(this, "limit"));
+            this.querySelector("#blink-input").addEventListener("change", this._valueChanged.bind(this, "blink_now"));
+            this.querySelector("#red-threshold-input").addEventListener("change", this._valueChanged.bind(this, "red_threshold"));
         }
 
-        // Ustawiamy aktualne wartości w polach
         const entityPicker = this.querySelector("ha-entity-picker");
         if (entityPicker) {
-            entityPicker.hass = this._hass; // Upewniamy się, że picker ma hass
+            entityPicker.hass = this._hass;
             entityPicker.value = this._config.entity || "";
         }
         
         this.querySelector("#title-input").value = this._config.title || "";
-        this.querySelector("#limit-input").value = this._config.limit || 10;
+        this.querySelector("#limit-input").value = this._config.limit !== undefined ? this._config.limit : 10;
+        this.querySelector("#blink-input").checked = this._config.blink_now !== false;
+        this.querySelector("#red-threshold-input").value = this._config.red_threshold !== undefined ? this._config.red_threshold : 6;
+    }
+
+    _entityChanged(ev) {
+        if (!this._config || !this._hass) return;
+        
+        const newEntity = ev.detail.value;
+        if (this._config.entity === newEntity) return;
+
+        // Automatycznie zaktualizuj tytuł tylko jeśli użytkownik go ręcznie nie zmienił
+        if (!this._titleManuallySet) {
+            this._updateTitleFromEntity(newEntity);
+        }
+
+        const newConfig = {
+            ...this._config,
+            entity: newEntity,
+        };
+
+        this._dispatchConfigChanged(newConfig);
+    }
+
+    _updateTitleFromEntity(entityId) {
+        if (!this._hass || !entityId) return;
+        
+        const state = this._hass.states[entityId];
+        if (state) {
+            const friendlyName = state.attributes.friendly_name || "";
+            const stopName = friendlyName.replace(/^Autobusy\s+/i, "");
+            const newTitle = stopName ? `Odjazdy ${stopName}` : "Odjazdy";
+            
+            this.querySelector("#title-input").value = newTitle;
+            
+            const newConfig = {
+                ...this._config,
+                title: newTitle,
+            };
+            this._dispatchConfigChanged(newConfig);
+        }
     }
 
     _valueChanged(key, ev) {
         if (!this._config || !this._hass) return;
 
         const target = ev.target;
-        // Dla ha-entity-picker wartość jest w .value, dla inputów też
-        // Ale event ha-entity-picker to 'value-changed', a jego szczegóły są w ev.detail.value
         let newValue = target.value;
         
-        if (key === "entity" && ev.detail && ev.detail.value !== undefined) {
-            newValue = ev.detail.value;
-        }
-        
-        if (key === "limit") {
+        if (key === "limit" || key === "red_threshold") {
             newValue = parseInt(newValue);
+        } else if (key === "blink_now") {
+            newValue = target.checked;
         }
 
-        // Jeśli wartość jest ta sama, nie rób nic
         if (this._config[key] === newValue) return;
 
-        // Tworzymy nową konfigurację
         const newConfig = {
             ...this._config,
             [key]: newValue,
         };
 
-        // Wysyłamy zdarzenie do Home Assistant: "Konfiguracja się zmieniła!"
+        this._dispatchConfigChanged(newConfig);
+    }
+
+    _dispatchConfigChanged(newConfig) {
+        this._config = newConfig;
         const event = new CustomEvent("config-changed", {
             detail: { config: newConfig },
             bubbles: true,
@@ -357,15 +430,13 @@ class ZtmDeparturesCardEditor extends HTMLElement {
     }
 }
 
-// Rejestracja obu klas
 customElements.define('ztm-departures-card-editor', ZtmDeparturesCardEditor);
 customElements.define('ztm-departures-card', ZtmDeparturesCard);
 
-// To sprawia, że karta pojawia się na liście "Dodaj kartę" w UI
 window.customCards = window.customCards || [];
 window.customCards.push({
     type: "ztm-departures-card",
     name: "ZTM Trójmiasto",
     description: "Karta odjazdów na żywo (Gdańsk/Gdynia/Sopot)",
-    preview: true // Opcjonalnie włącza podgląd
+    preview: true
 });
