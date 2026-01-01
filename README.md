@@ -1,4 +1,3 @@
-TEST
 TEST2
 # ZTM Trójmiasto - Integracja dla Home Assistant
 
