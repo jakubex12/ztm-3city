@@ -4,6 +4,5 @@
   "content_in_root": false,
   "country": "PL",
   "homeassistant": "2025.12.4",
-  "zip_release": false,
-  "version": "2026.1.2"
+  "zip_release": false
 }
