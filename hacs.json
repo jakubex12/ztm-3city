@@ -5,6 +5,5 @@
   "country": "PL",
   "homeassistant": "2025.12.4",
   "zip_release": false,
-  "version": "2026.1.2",
-  "iot_class": "cloud_polling"
+  "version": "2026.1.2"
 }
