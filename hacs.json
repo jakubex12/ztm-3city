@@ -1,8 +1,6 @@
 {
-  "name": "ZTM_3City",
+  "name": "ZTM 3City Departures Card",
+  "version": "1.0.1",
   "render_readme": true,
-  "content_in_root": false,
-  "country": "PL",
-  "homeassistant": "2025.12.4",
-  "zip_release": false
+  "filename": "ztm-departures-card.js"
 }

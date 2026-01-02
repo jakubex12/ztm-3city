@@ -1,26 +1,25 @@
-# ZTM 3City - Home Assistant Integration
+TEST
+# ZTM 3City Departures Card
 
-Integracja dostarczająca dane o rzeczywistych odjazdach komunikacji miejskiej w Trójmieście (Gdańsk, Gdynia, Sopot) bezpośrednio do Home Assistant.
+Niestandardowa karta Lovelace dla Home Assistant, zaprojektowana do wyświetlania odjazdów ZTM Gdańsk, Gdynia i Sopot w czytelnej formie tablicy przystankowej.
 
-⚠️ **WAŻNA ZMIANA (Wersja 2026.1.2+):**
-Od tej wersji integracja i karta wizualna są rozdzielone. To repozytorium zawiera teraz wyłącznie **backend** (sensory). Jeśli chcesz korzystać z dedykowanej karty graficznej, zainstaluj ją osobno z linku poniżej.
+## 📋 Wymagania
+Karta wymaga zainstalowanej integracji backendowej:
+👉 [ZTM 3City Integration](https://github.com/jakubex12/ztm-3city)
 
-## 🚀 Nowości
-- Rozdzielenie frontendu od backendu (lepsza wydajność).
-- Możliwość używania danych w dowolnych kartach HA.
-- Dedykowana karta: [ZTM 3City Card](https://github.com/jakubex12/ztm-3city-card)
-
-## 🛠 Instalacja
-### Przez HACS (Zalecane)
-1. Otwórz **HACS** -> **Integracje**.
+## 🚀 Instalacja
+### Przez HACS
+1. Otwórz **HACS** -> **Frontend**.
 2. Kliknij trzy kropki w prawym górnym rogu i wybierz **Niestandardowe repozytoria**.
-3. Wklej link: `https://github.com/jakubex12/ztm-3city` i wybierz kategorię **Integracja**.
-4. Zainstaluj, a następnie zrestartuj Home Assistant.
-5. Dodaj integrację w menu **Ustawienia** -> **Urządzenia oraz usługi**.
+3. Wklej link: `https://github.com/jakubex12/ztm-3city-card`
+4. Wybierz kategorię **Dashboard**.
+5. Kliknij **Pobierz**.\n6. Po instalacji odśwież interfejs Home Assistant.
 
-## 📊 Sensory
-Integracja tworzy sensory dla wybranych przystanków. Każdy sensor posiada atrybuty z listą najbliższych odjazdów, które mogą być konsumowane przez dedykowaną kartę lub natywne karty HA.
+## ⚙️ Konfiguracja
+Kartę możesz dodać przez edytor wizualny lub ręcznie w YAML:
 
-## 🎨 Karta Dashboard (Frontend)
-Aby uzyskać estetyczny wygląd tablicy odjazdów, zainstaluj:
-👉 **[ZTM 3City Departures Card](https://github.com/jakubex12/ztm-3city-card)**
+```yaml
+type: custom:ztm-departures-card
+entity: sensor.ztm_gdansk_skp_01
+name: Przystanek SKM
+show_num_departures: 5
