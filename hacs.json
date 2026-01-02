@@ -1,0 +1,8 @@
+{
+  "name": "ZTM_3City",
+  "render_readme": true,
+  "content_in_root": false,
+  "country": "PL",
+  "homeassistant": "2025.12.4",
+  "zip_release": false
+}
