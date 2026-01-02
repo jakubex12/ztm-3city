@@ -1,6 +1,6 @@
 {
   "domain": "ztm_trojmiasto",
-  "name": "ZTM-3City",
+  "name": "ZTM_3City",
   "codeowners": ["@jakubex12"],
   "config_flow": true,
   "dependencies": [
@@ -13,5 +13,6 @@
   "requirements": [],
   "version": "2026.1.2"
 }
+
 
 
