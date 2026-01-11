@@ -1,9 +1,8 @@
-TEST10
 # ZTM 3City - Home Assistant Integration
 
 Integracja dostarczająca dane o rzeczywistych odjazdach komunikacji miejskiej w Trójmieście (Gdańsk, Gdynia, Sopot) bezpośrednio do Home Assistant.
 
-⚠️ **WAŻNA ZMIANA (Wersja 2026.1.2+):**
+⚠️ **BRAKING CHANGE/ŁAMIĄCA ZMIANA (Wersja 2026.1.2+):**
 Od tej wersji integracja i karta wizualna są rozdzielone. To repozytorium zawiera teraz wyłącznie **backend** (sensory). Jeśli chcesz korzystać z dedykowanej karty graficznej, zainstaluj ją osobno z linku poniżej.
 
 ## 🚀 Nowości
